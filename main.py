@@ -1,12 +1,32 @@
-from datetime import datetime
+from datetime import datetime, date
 from models import Cliente, QuartoSolteiro, QuartoCasal, Suite, Reserva
 from exceptions import (
     ErroHotel,
     QuartoIndisponivelError,
     DataInvalidaError,
-    RegistroNaoEncontradoError
+    RegistroNaoEncontradoError,
+    DadosInvalidosError,
+    ArquivoCorrompidoError
 )
 from storage import salvar_dados, carregar_dados
+
+
+def ler_inteiro(mensagem: str) -> int:
+    """Lê um número inteiro, lançando uma exceção com mensagem clara se for inválido."""
+    texto = input(mensagem).strip()
+    try:
+        return int(texto)
+    except ValueError:
+        raise DadosInvalidosError("Digite apenas números inteiros (ex: 101).")
+
+
+def ler_decimal(mensagem: str) -> float:
+    """Lê um número decimal (aceita vírgula ou ponto)."""
+    texto = input(mensagem).strip().replace(",", ".")
+    try:
+        return float(texto)
+    except ValueError:
+        raise DadosInvalidosError("Digite um valor numérico válido (ex: 150.50).")
 
 
 def ler_data(mensagem: str) -> datetime:
@@ -16,6 +36,17 @@ def ler_data(mensagem: str) -> datetime:
         return datetime.strptime(texto, "%d/%m/%Y")
     except ValueError:
         raise DataInvalidaError("Formato de data inválido. Use DD/MM/AAAA (ex: 20/11/2026).")
+
+
+def validar_cpf(cpf: str) -> None:
+    """Confere se o CPF tem exatamente 11 dígitos numéricos."""
+    if not cpf.isdigit() or len(cpf) != 11:
+        raise DadosInvalidosError("CPF inválido. Informe exatamente 11 números, sem pontos ou traços.")
+
+
+def proximo_id(reservas: list) -> int:
+    """Gera o próximo ID de reserva com base no maior ID existente."""
+    return max((r.id_reserva for r in reservas), default=0) + 1
 
 
 def verificar_disponibilidade(numero_quarto: int, inicio: datetime, fim: datetime, reservas: list) -> bool:
@@ -35,15 +66,25 @@ def cadastrar_cliente(clientes: list) -> None:
     cpf = input("CPF (apenas números): ").strip()
     telefone = input("Telefone: ").strip()
 
-    if not nome or not cpf:
-        raise ValueError("Nome e CPF são obrigatórios.")
+    if not nome:
+        raise DadosInvalidosError("O nome é obrigatório.")
+    validar_cpf(cpf)
 
     for c in clientes:
         if c.cpf == cpf:
-            raise ValueError("Já existe um cliente cadastrado com este CPF.")
+            raise DadosInvalidosError("Já existe um cliente cadastrado com este CPF.")
 
     clientes.append(Cliente(nome, cpf, telefone))
     print("Cliente cadastrado com sucesso!")
+
+
+def listar_clientes(clientes: list) -> None:
+    print("\n--- CLIENTES CADASTRADOS ---")
+    if not clientes:
+        print("Nenhum cliente cadastrado.")
+        return
+    for c in clientes:
+        print(c)
 
 
 def remover_cliente(clientes: list, reservas: list) -> None:
@@ -67,26 +108,26 @@ def remover_cliente(clientes: list, reservas: list) -> None:
 
 def cadastrar_quarto(quartos: list) -> None:
     print("\n--- CADASTRO DE QUARTO ---")
-    numero = int(input("Número do quarto: "))
+    numero = ler_inteiro("Número do quarto: ")
     for q in quartos:
         if q.numero == numero:
-            raise ValueError("Já existe um quarto cadastrado com este número.")
+            raise DadosInvalidosError("Já existe um quarto cadastrado com este número.")
 
     print("Tipos de acomodação: [1] Solteiro | [2] Casal | [3] Suíte")
     opcao_tipo = input("Escolha o tipo: ").strip()
-    preco = float(input("Valor base da diária (R$): "))
+    if opcao_tipo not in ("1", "2", "3"):
+        raise DadosInvalidosError("Tipo de quarto inválido.")
 
+    preco = ler_decimal("Valor base da diária (R$): ")
     if preco <= 0:
-        raise ValueError("O valor da diária deve ser maior que zero.")
+        raise DadosInvalidosError("O valor da diária deve ser maior que zero.")
 
     if opcao_tipo == "1":
         quarto = QuartoSolteiro(numero, preco)
     elif opcao_tipo == "2":
         quarto = QuartoCasal(numero, preco)
-    elif opcao_tipo == "3":
-        quarto = Suite(numero, preco)
     else:
-        raise ValueError("Tipo de quarto inválido.")
+        quarto = Suite(numero, preco)
 
     quartos.append(quarto)
     print(f"Quarto {numero} ({quarto.tipo}) cadastrado com sucesso!")
@@ -102,17 +143,20 @@ def realizar_reserva(clientes: list, quartos: list, reservas: list) -> None:
     if not quartos:
         raise RegistroNaoEncontradoError("Nenhum quarto cadastrado no sistema.")
 
-    print("\nQuartos disponíveis no hotel:")
+    print("\nQuartos cadastrados no hotel:")
     for q in quartos:
         print(f"  - {q.descrever()}")
 
-    num_quarto = int(input("\nNúmero do quarto desejado: "))
+    num_quarto = ler_inteiro("\nNúmero do quarto desejado: ")
     quarto = next((q for q in quartos if q.numero == num_quarto), None)
     if not quarto:
         raise RegistroNaoEncontradoError("Quarto não encontrado.")
 
     data_in = ler_data("Data de Check-in (DD/MM/AAAA): ")
     data_out = ler_data("Data de Check-out (DD/MM/AAAA): ")
+
+    if data_in.date() < date.today():
+        raise DataInvalidaError("A data de check-in não pode estar no passado.")
 
     if data_out <= data_in:
         raise DataInvalidaError("A data de check-out deve ser posterior à data de check-in.")
@@ -122,7 +166,7 @@ def realizar_reserva(clientes: list, quartos: list, reservas: list) -> None:
 
     dias = (data_out - data_in).days
     valor_total = dias * quarto.calcular_diaria()
-    novo_id = len(reservas) + 1
+    novo_id = proximo_id(reservas)
 
     nova_reserva = Reserva(
         id_reserva=novo_id,
@@ -148,7 +192,7 @@ def listar_reservas(reservas: list) -> None:
 
 def cancelar_reserva(reservas: list) -> None:
     print("\n--- CANCELAR RESERVA ---")
-    id_res = int(input("Informe o ID da reserva: "))
+    id_res = ler_inteiro("Informe o ID da reserva: ")
     reserva = next((r for r in reservas if r.id_reserva == id_res), None)
 
     if not reserva:
@@ -161,7 +205,12 @@ def cancelar_reserva(reservas: list) -> None:
 
 
 def menu():
-    clientes, quartos, reservas = carregar_dados()
+    try:
+        clientes, quartos, reservas = carregar_dados()
+    except ArquivoCorrompidoError as e:
+        print(f"\n[AVISO DO SISTEMA]: {e}")
+        print("O sistema será iniciado vazio. Seus dados antigos continuam na cópia .bak.")
+        clientes, quartos, reservas = [], [], []
 
     while True:
         print("\n=========================================")
@@ -174,6 +223,7 @@ def menu():
         print("5. Listar Reservas")
         print("6. Cancelar Reserva")
         print("7. Remover Cliente")
+        print("8. Listar Clientes")
         print("0. Sair e Salvar")
         print("=========================================")
 
@@ -203,6 +253,8 @@ def menu():
             elif opcao == "7":
                 remover_cliente(clientes, reservas)
                 salvar_dados(clientes, quartos, reservas)
+            elif opcao == "8":
+                listar_clientes(clientes)
             elif opcao == "0":
                 salvar_dados(clientes, quartos, reservas)
                 print("Dados salvos. Encerrando o sistema...")
@@ -212,8 +264,8 @@ def menu():
 
         except ErroHotel as e:
             print(f"\n[AVISO DO SISTEMA]: {e}")
-        except ValueError as e:
-            print(f"\n[ERRO DE ENTRADA]: {e}")
+        except OSError as e:
+            print(f"\n[ERRO DE ARQUIVO]: não foi possível gravar os dados ({e}).")
         except Exception as e:
             print(f"\n[ERRO INESPERADO]: {e}")
 

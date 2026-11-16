@@ -1,19 +1,19 @@
 {
     "clientes": [
         {
-            "nome": "Jennyfer Fernanda Sarges Veiga",
-            "cpf": "07224497207",
-            "telefone": "91992771553"
-        },
-        {
-            "nome": "Maria das Graças dos Santos Filha",
+            "nome": "MARIA DAS GRAÇAS DOS SANTOS FILHA",
             "cpf": "88611914287",
             "telefone": "91991552741"
         },
         {
-            "nome": "Sebastião Santana da Costa",
-            "cpf": "0295701972",
+            "nome": "SEBASTIÃO SANATANA DA COSTA",
+            "cpf": "02957019272",
             "telefone": "91992009732"
+        },
+        {
+            "nome": "JENNYFER FERNANDA SARGES VEIGA",
+            "cpf": "07224497207",
+            "telefone": "91992771553"
         }
     ],
     "quartos": [
@@ -32,6 +32,16 @@
             "preco_base": 350.0,
             "tipo": "Suíte"
         }
+    ],
+    "reservas": [
+        {
+            "id_reserva": 1,
+            "cpf_cliente": "03231803292",
+            "numero_quarto": 2,
+            "check_in": "2026-12-23",
+            "check_out": "2026-12-28",
+            "valor_total": 1375.0,
+            "ativa": false
+        }
     ]
- 
 }

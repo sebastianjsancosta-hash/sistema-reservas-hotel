@@ -16,3 +16,13 @@ class DataInvalidaError(ErroHotel):
 class RegistroNaoEncontradoError(ErroHotel):
     """Lançada quando um cliente, quarto ou reserva não é encontrado."""
     pass
+
+
+class DadosInvalidosError(ErroHotel):
+    """Lançada quando um dado digitado é inválido (ex: CPF incompleto, texto no lugar de número)."""
+    pass
+
+
+class ArquivoCorrompidoError(ErroHotel):
+    """Lançada quando o arquivo de dados existe, mas não pode ser lido corretamente."""
+    pass
