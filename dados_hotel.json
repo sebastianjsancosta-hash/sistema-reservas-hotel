@@ -1,0 +1,37 @@
+{
+    "clientes": [
+        {
+            "nome": "Jennyfer Fernanda Sarges Veiga",
+            "cpf": "07224497207",
+            "telefone": "91992771553"
+        },
+        {
+            "nome": "Maria das Graças dos Santos Filha",
+            "cpf": "88611914287",
+            "telefone": "91991552741"
+        },
+        {
+            "nome": "Sebastião Santana da Costa",
+            "cpf": "0295701972",
+            "telefone": "91992009732"
+        }
+    ],
+    "quartos": [
+        {
+            "numero": 1,
+            "preco_base": 150.0,
+            "tipo": "Solteiro"
+        },
+        {
+            "numero": 2,
+            "preco_base": 250.0,
+            "tipo": "Casal"
+        },
+        {
+            "numero": 3,
+            "preco_base": 350.0,
+            "tipo": "Suíte"
+        }
+    ]
+ 
+}
